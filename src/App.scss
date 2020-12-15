@@ -1,0 +1,20 @@
+.scoville-race {
+  margin: 20px;
+  display: table;
+  border-collapse: collapse;
+
+  .cell {
+    display: table-cell;
+    width: 30px;
+    height: 30px;
+    border: 1px solid #CDCDCD;
+
+    &.spicy {
+      background-color: green;
+    }
+
+    &.sweet {
+      background-color: yellow;
+    }
+  }
+}
