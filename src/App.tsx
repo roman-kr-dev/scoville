@@ -1,9 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import classNames from 'classnames';
 import createGradiant from './utils/colors';
-import logo from './logo.svg';
 import './App.scss';
-import { time } from 'console';
 
 enum PepperStates {
   EMPTY,
@@ -17,81 +15,70 @@ enum KeyboardArrows {
   RIGHT = 'ArrowRight'
 }
 
-interface UpdatePepperProps {
-  xIndex: number,
+interface PepperProps {
   state: PepperStates
 }
 
-interface PepperProps {
-  state: PepperStates,
-  xIndex: number,
-  onUpdate: ({ xIndex, state }: UpdatePepperProps) => void
-}
-
 interface PlayerProps {
-  color: string
+  score: number
 }
 
-const Pepper = ({ state, xIndex, onUpdate }: PepperProps) => {
-  useEffect(() => {
-    let timeout: number;
-
-    const randomState = () => {
-      timeout = window.setTimeout(() => {
-        const newState = Math.floor(Math.random() * 2) ? PepperStates.SPICY : PepperStates.SWEET;
-
-        if ( newState !== state ) { onUpdate({ xIndex, state: newState }) }
-      }, (Math.random() * 5 * 1000));
-    }
-
-    randomState();
-
-    return () => {
-      clearTimeout(timeout);
-    }
-  }, [state, xIndex, onUpdate]);
-
+const Pepper = ({ state }: PepperProps) => {
   return <div className={classNames('cell', {
     'spicy': state === PepperStates.SPICY,
     'sweet': state === PepperStates.SWEET
   })} />
 }
 
-const Player = ({ color }: PlayerProps) => {
-  return <div className="cell player" style={ {backgroundColor: color} } />;
+const Player = ({ score }: PlayerProps) => {
+  const size = 30 + ( score * 5 );
+
+  return <div className="cell player" style={ {
+    width: size,
+    height: size,
+    backgroundColor: colorMatix[ score ]
+  } } />;
 }
 
 function App() {
   const [ matrix, setMatrix ] = useState( generateMatrix );
-  const [ colorMatrix ] = useState( generateColorMatrix(matrix.length) );
   const [ x, setX ] = useState(() => Math.floor(Math.random() * matrix.length));
   const [ score, setScore ] = useState(0);
 
-  const updatePepperState = useCallback(({ xIndex, state }: UpdatePepperProps) => {
-    setMatrix((currentMatrix) => {
-      const newMatrix = [...currentMatrix];
-      newMatrix[ xIndex ] = {...newMatrix[ xIndex ], state };
+  useEffect(() => {
+    const randomize = () => {
+      setMatrix(currentMatrix => {
+        const now = new Date();
+        
+        const newMatrix = [...currentMatrix].map(box => {
+          if (box.state !== PepperStates.ACTIVE && now > box.nextUpdate && !box.done) {
+            box.nextUpdate = getRandomTime();
+            box.state = getRandomState();
+          }
 
-      return newMatrix;
-    });
+          return box;
+        });
+  
+        return newMatrix;
+      });
+    }
+
+    const interval = setInterval(() => {
+      randomize();
+    }, 250);
+
+    return () => clearInterval(interval);  
   }, []);
-
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      switch ( e.code ) {
-        case KeyboardArrows.LEFT:
-          setX(currentX => Math.max(0, currentX - 1));
+      if (![KeyboardArrows.LEFT, KeyboardArrows.RIGHT].includes( e.code as KeyboardArrows )) { return; }
 
-          setScore( score => score + 1 );
-          break;
+      setX(currentX => {
+        const nextX = e.code === KeyboardArrows.LEFT ?  Math.max(0, currentX - 1) : Math.min(matrix.length - 1, currentX + 1);
 
-        case KeyboardArrows.RIGHT:
-          setX(currentX => Math.min(matrix.length - 1, currentX + 1));
-
-          setScore( score => score + 1 );
-          break;
-      }
+        return nextX;
+      });
     }
 
     window.addEventListener('keydown', onKeyDown);
@@ -101,23 +88,39 @@ function App() {
     }
   }, [matrix.length]);
 
+  useEffect(() => {
+    if (matrix[x].state === PepperStates.EMPTY) { return; }
+
+    const isSpicy = matrix[x].state === PepperStates.SPICY;
+
+    setScore( currentScore => {
+      return isSpicy ? currentScore + 1 : -1;
+    });
+  }, [x])
+
   return (
+    score === -1 ? 
+    <div>Game Over</div> : 
     <div className="scoville-race">
        {matrix.map(({ state }, i) =>
-          x === i ? <Player key={i} color={ colorMatrix[ score ] } /> : <Pepper key={i} xIndex={i} state={ state } onUpdate={ updatePepperState } />
+          x === i ? <Player key={i} score={ score } /> : <Pepper key={i} state={ state } />
        )}
     </div>
   );
 }
 
-function generateMatrix() {
-  return Array(10).fill({state: PepperStates.EMPTY});
+const colorMatix = createGradiant({ start: '#ffe8e8', end: '#FF0000', steps: 50 });
+
+function getRandomTime() {
+  return new Date(Date.now() + (3 + Math.random() * 5) * 1000);
 }
 
-function generateColorMatrix(steps: number) {
-  return () => {
-    return createGradiant({ start: '#ffe8e8', end: '#FF0000', steps: steps - 2 });
-  }
+function getRandomState() {
+  return Math.floor(Math.random() * 2) ? PepperStates.SPICY : PepperStates.SWEET;
+}
+
+function generateMatrix() {
+  return Array(10).fill(null).map((_, i) => ({ state: PepperStates.EMPTY, nextUpdate: getRandomTime(), done: false, i }));
 }
 
 export default App;
