@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import classNames from 'classnames';
-import createGradiant from './utils/colors';
+import createGradiant from '../../utils/colors';
 import './App.scss';
 
 enum PepperStates {
@@ -12,9 +12,7 @@ enum PepperStates {
 
 enum KeyboardArrows {
   LEFT = 'ArrowLeft',
-  RIGHT = 'ArrowRight',
-  UP = 'ArrowUp',
-  DOWN = 'ArrowDown'
+  RIGHT = 'ArrowRight'
 }
 
 interface PepperProps {
@@ -45,7 +43,6 @@ const Player = ({ score }: PlayerProps) => {
 function App() {
   const [ matrix, setMatrix ] = useState( generateMatrix );
   const [ x, setX ] = useState(() => Math.floor(Math.random() * matrix.length));
-  const [ y, setY ] = useState(() => Math.floor(Math.random() * matrix.length));
   const [ score, setScore ] = useState(0);
 
   useEffect(() => {
@@ -53,15 +50,13 @@ function App() {
       setMatrix(currentMatrix => {
         const now = new Date();
         
-        const newMatrix = [...currentMatrix].map(row => {
-          return row.map(box => {
-            if (box.state !== PepperStates.ACTIVE && now > box.nextUpdate && !box.done) {
-              box.nextUpdate = getRandomTime();
-              box.state = getRandomState();
-            }
-  
-            return box;
-          });
+        const newMatrix = [...currentMatrix].map(box => {
+          if (box.state !== PepperStates.ACTIVE && now > box.nextUpdate && !box.done) {
+            box.nextUpdate = getRandomTime();
+            box.state = getRandomState();
+          }
+
+          return box;
         });
   
         return newMatrix;
@@ -77,23 +72,13 @@ function App() {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      console.log( e.code )
+      if (![KeyboardArrows.LEFT, KeyboardArrows.RIGHT].includes( e.code as KeyboardArrows )) { return; }
 
-      if ([KeyboardArrows.LEFT, KeyboardArrows.RIGHT].includes( e.code as KeyboardArrows )) { 
-        setX(currentX => {
-          const nextX = e.code === KeyboardArrows.LEFT ?  Math.max(0, currentX - 1) : Math.min(matrix.length - 1, currentX + 1);
-  
-          return nextX;
-        });
-      }
+      setX(currentX => {
+        const nextX = e.code === KeyboardArrows.LEFT ?  Math.max(0, currentX - 1) : Math.min(matrix.length - 1, currentX + 1);
 
-      if ([KeyboardArrows.UP, KeyboardArrows.DOWN].includes( e.code as KeyboardArrows )) { 
-        setY(currentY => {
-          const nextY = e.code === KeyboardArrows.UP ?  Math.max(0, currentY - 1) : Math.min(matrix.length - 1, currentY + 1);
-  
-          return nextY;
-        });
-      }
+        return nextX;
+      });
     }
 
     window.addEventListener('keydown', onKeyDown);
@@ -104,35 +89,27 @@ function App() {
   }, [matrix.length]);
 
   useEffect(() => {
-    if (matrix[y][x].state === PepperStates.EMPTY) { return; }
+    if (matrix[x].state === PepperStates.EMPTY) { return; }
 
-    const isSpicy = matrix[y][x].state === PepperStates.SPICY;
+    const isSpicy = matrix[x].state === PepperStates.SPICY;
 
     setScore( currentScore => {
       return isSpicy ? currentScore + 1 : -1;
     });
-  }, [x, y])
+  }, [x])
 
   return (
     score === -1 ? 
     <div>Game Over</div> : 
     <div className="scoville-race">
-      {
-        matrix.map((row, yIndex) => <div key={ yIndex } className="row">
-          {
-            row.map(({ state }, xIndex) => {
-              const key = `${yIndex}${xIndex}`;
-
-              return y === yIndex && x === xIndex ? <Player key={ key } score={ score } /> : <Pepper key={ key } state={ state } />
-            })
-          }
-        </div>)
-      }
+       {matrix.map(({ state }, i) =>
+          x === i ? <Player key={i} score={ score } /> : <Pepper key={i} state={ state } />
+       )}
     </div>
   );
 }
 
-const colorMatix = createGradiant({ start: '#ffe8e8', end: '#FF0000', steps: 100 });
+const colorMatix = createGradiant({ start: '#ffe8e8', end: '#FF0000', steps: 50 });
 
 function getRandomTime() {
   return new Date(Date.now() + (3 + Math.random() * 5) * 1000);
@@ -143,9 +120,7 @@ function getRandomState() {
 }
 
 function generateMatrix() {
-  return Array(10).fill(null).map(_ => {
-    return Array(10).fill(null).map(_ => ({ state: PepperStates.EMPTY, nextUpdate: getRandomTime(), done: false }));
-  });
+  return Array(10).fill(null).map((_, i) => ({ state: PepperStates.EMPTY, nextUpdate: getRandomTime(), done: false, i }));
 }
 
 export default App;
