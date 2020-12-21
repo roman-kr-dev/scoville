@@ -13,10 +13,10 @@ ReactDOM.render(
   <React.StrictMode>
     <Router>
       <Switch>
-        <Route path="/v1">
+        <Route path="/basic">
           <GameV1 />
         </Route>
-        <Route path="/">
+        <Route path="/2d">
           <Game />
         </Route>
       </Switch>

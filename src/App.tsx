@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import classNames from 'classnames';
 import createGradiant from './utils/colors';
 import './App.scss';
@@ -25,6 +25,8 @@ interface PlayerProps {
   score: number
 }
 
+const matrixSize = { x: 10, y: 10 };
+
 const Pepper = ({ state }: PepperProps) => {
   return <div className={classNames('cell', {
     'spicy': state === PepperStates.SPICY,
@@ -33,20 +35,50 @@ const Pepper = ({ state }: PepperProps) => {
 }
 
 const Player = ({ score }: PlayerProps) => {
-  const size = 30 + ( score * 5 );
-
   return <div className="cell player" style={ {
-    width: size,
-    height: size,
     backgroundColor: colorMatix[ score ]
   } } />;
 }
 
+const Score = ({ score }: { score: number }) => {
+  return <div className="score">Score: {score}</div>
+}
+
+const ArrowsPanel = ({ onArrowClick }: { onArrowClick: ( arrow: KeyboardArrows ) => void }) => {
+  return (
+    <div className="arrows">
+      <span className="left" onClick={() => { onArrowClick( KeyboardArrows.LEFT ); }}>&#8592;</span>
+      <span className="right" onClick={() => { onArrowClick( KeyboardArrows.RIGHT ); }}>&#8594;</span>
+      <span className="up" onClick={() => { onArrowClick( KeyboardArrows.UP ); }}>&#8593;</span>
+      <span className="down" onClick={() => { onArrowClick( KeyboardArrows.DOWN ); }}>&#8595;</span>
+    </div>
+  );
+}
+
 function App() {
   const [ matrix, setMatrix ] = useState( generateMatrix );
-  const [ x, setX ] = useState(() => Math.floor(Math.random() * matrix.length));
-  const [ y, setY ] = useState(() => Math.floor(Math.random() * matrix.length));
+  const marixRef = useRef( matrix );
+  const [ x, setX ] = useState(() => Math.floor(Math.random() * matrixSize.x));
+  const [ y, setY ] = useState(() => Math.floor(Math.random() * matrixSize.y));
   const [ score, setScore ] = useState(0);
+
+  const move = useCallback(( arrow: KeyboardArrows ) => {
+    if ([KeyboardArrows.LEFT, KeyboardArrows.RIGHT].includes( arrow )) { 
+      setX(currentX => {
+        const nextX = arrow === KeyboardArrows.LEFT ?  Math.max(0, currentX - 1) : Math.min(matrixSize.x - 1, currentX + 1);
+
+        return nextX;
+      });
+    }
+
+    if ([KeyboardArrows.UP, KeyboardArrows.DOWN].includes( arrow )) { 
+      setY(currentY => {
+        const nextY = arrow === KeyboardArrows.UP ?  Math.max(0, currentY - 1) : Math.min(matrixSize.y - 1, currentY + 1);
+
+        return nextY;
+      });
+    }
+  }, []);
 
   useEffect(() => {
     const randomize = () => {
@@ -77,23 +109,7 @@ function App() {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      console.log( e.code )
-
-      if ([KeyboardArrows.LEFT, KeyboardArrows.RIGHT].includes( e.code as KeyboardArrows )) { 
-        setX(currentX => {
-          const nextX = e.code === KeyboardArrows.LEFT ?  Math.max(0, currentX - 1) : Math.min(matrix.length - 1, currentX + 1);
-  
-          return nextX;
-        });
-      }
-
-      if ([KeyboardArrows.UP, KeyboardArrows.DOWN].includes( e.code as KeyboardArrows )) { 
-        setY(currentY => {
-          const nextY = e.code === KeyboardArrows.UP ?  Math.max(0, currentY - 1) : Math.min(matrix.length - 1, currentY + 1);
-  
-          return nextY;
-        });
-      }
+      move( e.code as KeyboardArrows );
     }
 
     window.addEventListener('keydown', onKeyDown);
@@ -101,9 +117,11 @@ function App() {
     return () => {
       window.removeEventListener('keydown', onKeyDown);
     }
-  }, [matrix.length]);
+  }, [move]);
 
   useEffect(() => {
+    const matrix = marixRef.current;
+
     if (matrix[y][x].state === PepperStates.EMPTY) { return; }
 
     const isSpicy = matrix[y][x].state === PepperStates.SPICY;
@@ -111,31 +129,36 @@ function App() {
     setScore( currentScore => {
       return isSpicy ? currentScore + 1 : -1;
     });
-  }, [x, y])
+  }, [x, y]);
 
   return (
     score === -1 ? 
     <div>Game Over</div> : 
-    <div className="scoville-race">
-      {
-        matrix.map((row, yIndex) => <div key={ yIndex } className="row">
-          {
-            row.map(({ state }, xIndex) => {
-              const key = `${yIndex}${xIndex}`;
+    <>
+      <Score score={score} />
+      <ArrowsPanel onArrowClick={ move } />
 
-              return y === yIndex && x === xIndex ? <Player key={ key } score={ score } /> : <Pepper key={ key } state={ state } />
-            })
-          }
-        </div>)
-      }
-    </div>
+      <div className="scoville-race">
+        {
+          matrix.map((row, yIndex) => <div key={ yIndex } className="row">
+            {
+              row.map(({ state }, xIndex) => {
+                const key = `${yIndex}${xIndex}`;
+
+                return y === yIndex && x === xIndex ? <Player key={ key } score={ score } /> : <Pepper key={ key } state={ state } />
+              })
+            }
+          </div>)
+        }
+      </div>
+    </>
   );
 }
 
-const colorMatix = createGradiant({ start: '#ffe8e8', end: '#FF0000', steps: 100 });
+const colorMatix = createGradiant({ start: '#abf1ff', end: '#2e38ff', steps: matrixSize.x * matrixSize.y });
 
-function getRandomTime() {
-  return new Date(Date.now() + (3 + Math.random() * 5) * 1000);
+function getRandomTime(secondsRange: number = 5) {
+  return new Date(Date.now() + (3 + Math.random() * secondsRange) * 1000);
 }
 
 function getRandomState() {
@@ -144,7 +167,7 @@ function getRandomState() {
 
 function generateMatrix() {
   return Array(10).fill(null).map(_ => {
-    return Array(10).fill(null).map(_ => ({ state: PepperStates.EMPTY, nextUpdate: getRandomTime(), done: false }));
+    return Array(10).fill(null).map(_ => ({ state: PepperStates.EMPTY, nextUpdate: getRandomTime( matrixSize.x * matrixSize.y ), done: false }));
   });
 }
 

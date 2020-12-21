@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import classNames from 'classnames';
 import createGradiant from '../../utils/colors';
 import './App.scss';
@@ -42,6 +42,7 @@ const Player = ({ score }: PlayerProps) => {
 
 function App() {
   const [ matrix, setMatrix ] = useState( generateMatrix );
+  const marixRef = useRef( matrix );
   const [ x, setX ] = useState(() => Math.floor(Math.random() * matrix.length));
   const [ score, setScore ] = useState(0);
 
@@ -89,6 +90,8 @@ function App() {
   }, [matrix.length]);
 
   useEffect(() => {
+    const matrix = marixRef.current;
+
     if (matrix[x].state === PepperStates.EMPTY) { return; }
 
     const isSpicy = matrix[x].state === PepperStates.SPICY;
