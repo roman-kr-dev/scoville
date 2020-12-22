@@ -2,22 +2,22 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.scss';
 import {
-  HashRouter as Router,
+  BrowserRouter as Router,
   Switch,
   Route
 } from 'react-router-dom';
-import GameV1 from './versions/v1/App';
-import Game from './App';
+import Basic from './versions/basic/App';
+import TwoD from './versions/2d/App';;
 
 ReactDOM.render(
   <React.StrictMode>
     <Router>
       <Switch>
         <Route path="/basic">
-          <GameV1 />
+          <Basic />
         </Route>
         <Route path="/2d">
-          <Game />
+          <TwoD />
         </Route>
       </Switch>
     </Router>

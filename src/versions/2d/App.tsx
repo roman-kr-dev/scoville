@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import classNames from 'classnames';
-import createGradiant from './utils/colors';
-import './App.scss';
+import createGradiant from '../../utils/colors';
 
 enum PepperStates {
   EMPTY,

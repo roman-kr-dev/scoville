@@ -11,3 +11,56 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+.score {
+  padding: 20px;
+}
+
+.arrows {
+  font-size: 1.5em;
+  margin: 0 15px;
+
+  span {
+    display: inline-block;
+    padding: 5px;
+    cursor: pointer;
+    user-select: none;
+  }
+}
+
+.game-over, .game-completed {
+  margin: 10px 20px;
+}
+
+.scoville-race {
+  margin: 20px;
+  display: table;
+  border-collapse: collapse;
+
+  &.done {
+    opacity: 0.5;
+  }
+
+  .row {
+    display: table-row;
+  }
+
+  .cell {
+    display: table-cell;
+    width: 30px;
+    height: 30px;
+    border: 1px solid #CDCDCD;
+
+    &.spicy {
+      background-color: green;
+    }
+
+    &.sweet {
+      background-color: red;
+    }
+
+    &.done {
+      background-color: lightgray;
+    }
+  }
+}
